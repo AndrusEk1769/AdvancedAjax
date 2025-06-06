@@ -5,10 +5,14 @@ namespace AdvancedAjax.Controllers
     public class CustomerController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _webHost;
 
-        public CustomerController(AppDbContext context)
+
+
+        public CustomerController(AppDbContext context, IWebHostEnvironment webHost)
         {
             _context = context;
+            _webHost = webHost;
         }
 
         public IActionResult Index()
@@ -30,6 +34,10 @@ namespace AdvancedAjax.Controllers
         [HttpPost]
         public IActionResult Create(Customer customer)
         {
+
+            string uniqueFileName = GetProfilePhotoFileName(customer);
+            customer.PhotoUrl = uniqueFileName;
+
             _context.Add(customer);
             _context.SaveChanges();
             return RedirectToAction(nameof(Index));
@@ -120,6 +128,24 @@ namespace AdvancedAjax.Controllers
 
             return Json(cities);
 
+        }
+
+
+        private string GetProfilePhotoFileName(Customer customer)
+        {
+            string uniqueFileName = null;
+
+            if (customer.ProfilePhoto != null)
+            {
+                string uploadsFolder = Path.Combine(_webHost.WebRootPath, "images");
+                uniqueFileName = Guid.NewGuid().ToString() + "_" + customer.ProfilePhoto.FileName;
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    customer.ProfilePhoto.CopyTo(fileStream);
+                }
+            }
+            return uniqueFileName;
         }
 
     }
